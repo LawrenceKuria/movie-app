@@ -79,7 +79,28 @@ async function fetchMovieByID (id) {
     } catch (error) {
         console.log(error)
     }
+}
 
+async function fetchTVShowByID (id) {
+    const url = `https://api.themoviedb.org/3/tv/${id}`
+    const options = {
+    method: 'GET',
+    headers: {
+        accept: 'application/json',
+        Authorization: 'Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJhZDRlNDU3YmIzMTZiMTFkM2Y4YTZiNDVkZGM4ZDY0MSIsIm5iZiI6MTc1MzA2MjU2OS41ODksInN1YiI6IjY4N2Q5Y2E5MjQyOWQ3NDI5M2Q5OGYxOSIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.wEqqs2DzPJSafC1910-6UO4Y4E1BRmDQSZltY800d2Y'
+    }
+    }
+    try {
+        const TVShowRes = await fetch(url, options)
+        if (!TVShowRes.ok) {
+            throw new Error("Failed to retrieve TV Show")
+        } else {
+            const TVShowDetails = await TVShowRes.json()
+            return TVShowDetails
+        }
+    } catch (error) {
+        console.log(error)
+    }
 }
 
 async function displayPopularMovies () {
@@ -170,6 +191,7 @@ async function displayMovieDetails () {
     
     const currentMovie = await fetchMovieByID(movieId)
     const movieDetails = document.getElementById('movie-details')
+    const backdropUrl = `url(https://image.tmdb.org/t/p/original/${currentMovie.backdrop_path})`
     
     //Create movie details
     const topDetails = document.createElement('div')
@@ -229,16 +251,16 @@ async function displayMovieDetails () {
     const movieInfoList = document.createElement('ul')
 
     const budget = document.createElement('li')
-    budget.innerHTML = `Budget:</span> $${currentMovie.budget}`
+    budget.innerHTML = `<span>Budget:</span> $${(Math.round(currentMovie.budget / 1000000) * 1000000).toLocaleString('en-US')}`
 
     const revenue = document.createElement('li')
-    revenue.innerHTML = `Revenue:</span> $${currentMovie.revenue}`
+    revenue.innerHTML = `<span>Revenue:</span> $${(Math.round(currentMovie.revenue / 1000000) * 1000000).toLocaleString('en-US')}`
 
     const runtime = document.createElement('li')
-    runtime.innerHTML = `Runtime:</span> ${currentMovie.runtime} min`
+    runtime.innerHTML = `<span>Runtime:</span> ${currentMovie.runtime} min`
     
     const status = document.createElement('li')
-    status.innerHTML = `Status:</span> ${currentMovie.status}`
+    status.innerHTML = `<span>Status:</span> ${currentMovie.status}`
 
     const productionCompanies = document.createElement('h4')
     productionCompanies.textContent = 'Production Companies'
@@ -251,7 +273,7 @@ async function displayMovieDetails () {
     .join(', ')
 
     //Append movie elements
-
+    document.querySelector('.backdrop-overlay').style.backgroundImage = backdropUrl
     movieDetails.appendChild(topDetails)
     movieDetails.appendChild(bottomDetails)
     topDetails.appendChild(div1)
@@ -274,6 +296,110 @@ async function displayMovieDetails () {
     movieInfoList.appendChild(status)
 }
 
+async function displayTVShowDetails () {
+    const urlParams = new URLSearchParams(window.location.search)
+    const TVShowId = urlParams.get('id')
+    
+    const currentTVShow = await fetchTVShowByID(TVShowId)
+    const TVShowDetails = document.getElementById('show-details')
+    
+    //Create movie details
+    const topDetails = document.createElement('div')
+    topDetails.classList.add('details-top')
+
+    const div1 = document.createElement('div')
+
+    const image = document.createElement('img')
+    image.setAttribute('src', `https://image.tmdb.org/t/p/original/${currentTVShow.poster_path}`)
+    image.classList.add('card-img-top')
+    image.setAttribute('alt', `Image of ${currentTVShow.name}`)
+
+    const div2 = document.createElement('div')
+
+    const movieTitle = document.createElement('h2')
+    movieTitle.textContent = `${currentTVShow.name}`
+
+    const paragraph1 = document.createElement('p')
+
+    const rating = document.createElement('i')
+    rating.classList.add('fas')
+    rating.classList.add('fa-star')
+    rating.classList.add('text-primary')
+    rating.textContent = `${Math.round(currentTVShow.vote_average)} / 10`
+
+    const releaseDate = document.createElement('p')
+    releaseDate.classList.add('text-muted')
+    releaseDate.textContent = `Release Date: ${currentTVShow.first_air_date}`
+
+    const description = document.createElement('p')
+    description.textContent = `${currentTVShow.overview}`
+
+    const genres = document.createElement('h5')
+    genres.textContent = 'Genres'
+
+    const genreList = document.createElement('ul')
+    genreList.classList.add('list-group')
+
+    currentTVShow.genres.forEach((genre) => {
+        const genreLi = document.createElement('li')
+        genreLi.textContent = genre.name
+        genreList.appendChild(genreLi)
+    })
+
+    const homepage = document.createElement('a')
+    homepage.setAttribute('href', currentTVShow.homepage)
+    homepage.setAttribute('target', '_blank')
+    homepage.classList.add('btn')
+    homepage.textContent = 'Visit Show Homepage'
+
+    const bottomDetails = document.createElement('div')
+    bottomDetails.classList.add('details-bottom')
+
+    const TVShowInfo = document.createElement('h2')
+    TVShowInfo.textContent = 'Show Info'
+
+    const TVShowInfoList = document.createElement('ul')
+
+    const numEpisodes = document.createElement('li')
+    numEpisodes.innerHTML = `<span>Number of Episodes:</span> ${currentTVShow.number_of_episodes}`
+
+    const lastEpisode = document.createElement('li')
+    lastEpisode.innerHTML = `<span>Last Episode to Air:</span> ${currentTVShow.last_episode_to_air.name}`
+    
+    const status = document.createElement('li')
+    status.innerHTML = `<span>Status:</span> ${currentTVShow.status}`
+
+    const productionCompanies = document.createElement('h4')
+    productionCompanies.textContent = 'Production Companies'
+
+    const companies = document.createElement('div')
+    companies.classList.add('list-group')
+    
+    companies.textContent = currentTVShow.production_companies
+    .map(company => company.name)
+    .join(', ')
+
+    //Append movie elements
+    TVShowDetails.appendChild(topDetails)
+    TVShowDetails.appendChild(bottomDetails)
+    topDetails.appendChild(div1)
+    topDetails.appendChild(div2)
+    div1.appendChild(image)
+    div2.appendChild(movieTitle)
+    div2.appendChild(paragraph1)
+    div2.appendChild(releaseDate)
+    div2.appendChild(description)
+    div2.appendChild(genres)
+    div2.appendChild(genreList)
+    div2.appendChild(homepage)
+    bottomDetails.appendChild(TVShowInfo)
+    bottomDetails.appendChild(TVShowInfoList)
+    bottomDetails.appendChild(productionCompanies)
+    bottomDetails.appendChild(companies)
+    TVShowInfoList.appendChild(numEpisodes)
+    TVShowInfoList.appendChild(lastEpisode)
+    TVShowInfoList.appendChild(status) 
+}
 
 
 //Initialize app
@@ -314,5 +440,10 @@ document.addEventListener('DOMContentLoaded', () => {
 document.addEventListener('DOMContentLoaded', () => {
     if (global.currentPage === '/movie-details.html') {
         displayMovieDetails()
+    }
+})
+document.addEventListener('DOMContentLoaded', () => {
+    if (global.currentPage === '/tv-details.html') {
+        displayTVShowDetails()
     }
 })
