@@ -94,7 +94,6 @@ ul {
   color: #fff;
   font-size: 25px;
   font-weight: 700;
-  text-transform: uppercase;
 }
 
 .main-header ul {
@@ -158,7 +157,6 @@ ul {
   color: #fff;
   font-size: 25px;
   font-weight: 700;
-  text-transform: uppercase;
 }
 
 .main-footer .container .social-links {
@@ -185,7 +183,6 @@ section.now-playing {
 section h2 {
   margin: 20px 0;
   text-align: center;
-  text-transform: uppercase;
 }
 
 /* Slider */
