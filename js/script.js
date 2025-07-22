@@ -23,11 +23,14 @@ async function fetchPopularMovies () {
     }
     }
     try {
+        showSpinner()
         const popularMovieRes = await fetch(url, options)
         if (!popularMovieRes.ok) {
+            hideSpinner()
             throw new Error("Failed to retrieve popular movies")
         } else {
             const popularMovieData = await popularMovieRes.json()
+            hideSpinner()
             return popularMovieData.results
         }
     } catch (error) {
@@ -46,11 +49,14 @@ async function fetchPopularTVShows () {
     }
     }
     try {
+        showSpinner()
         const popularTVShowsRes = await fetch(url, options)
         if (!popularTVShowsRes.ok) {
+            hideSpinner()
             throw new Error("Failed to retrieve popular movies")
         } else {
             const popularTVShowData = await popularTVShowsRes.json()
+            hideSpinner()
             return popularTVShowData.results
         }
     } catch (error) {
@@ -69,16 +75,53 @@ async function fetchMovieByID (id) {
     }
     }
     try {
+        showSpinner()
         const movieRes = await fetch(url, options)
         if (!movieRes.ok) {
+            hideSpinner()
             throw new Error("Failed to retrieve movie")
         } else {
             const movieDetails = await movieRes.json()
+            hideSpinner()
             return movieDetails
         }
     } catch (error) {
         console.log(error)
     }
+}
+
+async function fetchNowPlaying () {
+    const url = 'https://api.themoviedb.org/3/movie/now_playing';
+    const options = {
+    method: 'GET',
+    headers: {
+        accept: 'application/json',
+        Authorization: 'Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJhZDRlNDU3YmIzMTZiMTFkM2Y4YTZiNDVkZGM4ZDY0MSIsIm5iZiI6MTc1MzA2MjU2OS41ODksInN1YiI6IjY4N2Q5Y2E5MjQyOWQ3NDI5M2Q5OGYxOSIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.wEqqs2DzPJSafC1910-6UO4Y4E1BRmDQSZltY800d2Y'
+    }
+    }
+    try {
+        showSpinner()
+        const nowPlayingRes = await fetch(url, options)
+        if (!nowPlayingRes.ok) {
+            hideSpinner()
+            throw new Error("Failed to retrieve movies playing now")
+        } else {
+            const nowPlayingData = await nowPlayingRes.json()
+            hideSpinner()
+            return nowPlayingData
+        }
+    } catch (error) {
+        console.log(error)
+    }
+
+}
+
+function showSpinner () {
+    document.querySelector('.spinner').classList.add('show')
+}
+
+function hideSpinner () {
+    document.querySelector('.spinner').classList.remove('show')
 }
 
 async function fetchTVShowByID (id) {
@@ -91,11 +134,14 @@ async function fetchTVShowByID (id) {
     }
     }
     try {
+        showSpinner()
         const TVShowRes = await fetch(url, options)
         if (!TVShowRes.ok) {
+            hideSpinner()
             throw new Error("Failed to retrieve TV Show")
         } else {
             const TVShowDetails = await TVShowRes.json()
+            hideSpinner()
             return TVShowDetails
         }
     } catch (error) {
@@ -185,6 +231,64 @@ async function displayPopularTVShows () {
     })
 }
 
+async function displayNowPlaying () {
+    const nowPlaying = await fetchNowPlaying()
+    const swiperWrapper = document.querySelector('.swiper-wrapper')
+
+    nowPlaying.results.forEach((movie) => {
+        const swiperSlide = document.createElement('div')
+        swiperSlide.classList.add('swiper-slide')
+        
+        const anchor = document.createElement('a')
+        anchor.setAttribute('href', `movie-details.html?id=${movie.id}`)
+        
+        const ratingText = document.createElement('h4')
+        ratingText.classList.add('swiper-rating')
+        
+        const image = document.createElement('img')
+        image.setAttribute('src', `https://image.tmdb.org/t/p/w500/${movie.poster_path}`)
+        image.setAttribute('alt', `${movie.title}`)
+
+        const ratingIcon = document.createElement('i')
+        ratingIcon.classList.add('fas')
+        ratingIcon.classList.add('fa-star')
+        ratingIcon.classList.add('text-primary')
+        ratingIcon.textContent = ` ${Math.round(movie.vote_average)} / 10`
+        
+        swiperWrapper.appendChild(swiperSlide)
+        swiperSlide.appendChild(anchor)
+        swiperSlide.appendChild(ratingText)
+        anchor.appendChild(image)
+        ratingText.appendChild(ratingIcon)
+
+    })
+    initSwiper()
+}
+
+function initSwiper () {
+    const swiper = new Swiper('.swiper', {
+        slidesPerView: 1,
+        spaceBetween: 30,
+        freeMode: true,
+        loop: true,
+        autoplay: {
+            delay: 4000,
+            disableOnInteraction: false
+        },
+        breakpoints: {
+            500: {
+                slidesPerView: 2
+            },
+            700: {
+                slidesPerView: 3
+            },
+            1200: {
+                slidesPerView: 4
+            },
+        }
+    })
+}
+
 async function displayMovieDetails () {
     const urlParams = new URLSearchParams(window.location.search)
     const movieId = urlParams.get('id')
@@ -215,7 +319,7 @@ async function displayMovieDetails () {
     rating.classList.add('fas')
     rating.classList.add('fa-star')
     rating.classList.add('text-primary')
-    rating.textContent = `${Math.round(currentMovie.vote_average)} / 10`
+    rating.textContent = ` ${Math.round(currentMovie.vote_average)} / 10`
 
     const releaseDate = document.createElement('p')
     releaseDate.classList.add('text-muted')
@@ -257,7 +361,7 @@ async function displayMovieDetails () {
     revenue.innerHTML = `<span>Revenue:</span> $${(Math.round(currentMovie.revenue / 1000000) * 1000000).toLocaleString('en-US')}`
 
     const runtime = document.createElement('li')
-    runtime.innerHTML = `<span>Runtime:</span> ${currentMovie.runtime} min`
+    runtime.innerHTML = `<span>Runtime:</span> ${currentMovie.runtime} minutes`
     
     const status = document.createElement('li')
     status.innerHTML = `<span>Status:</span> ${currentMovie.status}`
@@ -286,6 +390,7 @@ async function displayMovieDetails () {
     div2.appendChild(genres)
     div2.appendChild(genreList)
     div2.appendChild(homepage)
+    paragraph1.appendChild(rating)
     bottomDetails.appendChild(movieInfo)
     bottomDetails.appendChild(movieInfoList)
     bottomDetails.appendChild(productionCompanies)
@@ -302,6 +407,7 @@ async function displayTVShowDetails () {
     
     const currentTVShow = await fetchTVShowByID(TVShowId)
     const TVShowDetails = document.getElementById('show-details')
+    const backdropUrl = `url(https://image.tmdb.org/t/p/original/${currentTVShow.backdrop_path})`
     
     //Create movie details
     const topDetails = document.createElement('div')
@@ -325,7 +431,7 @@ async function displayTVShowDetails () {
     rating.classList.add('fas')
     rating.classList.add('fa-star')
     rating.classList.add('text-primary')
-    rating.textContent = `${Math.round(currentTVShow.vote_average)} / 10`
+    rating.textContent = ` ${Math.round(currentTVShow.vote_average)} / 10`
 
     const releaseDate = document.createElement('p')
     releaseDate.classList.add('text-muted')
@@ -380,6 +486,7 @@ async function displayTVShowDetails () {
     .join(', ')
 
     //Append movie elements
+    document.querySelector('.backdrop-overlay').style.backgroundImage = backdropUrl
     TVShowDetails.appendChild(topDetails)
     TVShowDetails.appendChild(bottomDetails)
     topDetails.appendChild(div1)
@@ -392,6 +499,7 @@ async function displayTVShowDetails () {
     div2.appendChild(genres)
     div2.appendChild(genreList)
     div2.appendChild(homepage)
+    paragraph1.appendChild(rating)
     bottomDetails.appendChild(TVShowInfo)
     bottomDetails.appendChild(TVShowInfoList)
     bottomDetails.appendChild(productionCompanies)
@@ -407,16 +515,17 @@ function init() {
     switch (global.currentPage) {
         case '/':
         case '/index.html':
-            console.log('Home')
+            displayNowPlaying()
+            displayPopularMovies()
             break
         case '/shows.html':
-            console.log('Shows')
+            displayPopularTVShows()
             break
         case '/movie-details.html':
-            console.log('Movie Details')
+            displayMovieDetails()
             break
         case '/tv-details.html':
-            console.log('TV details')
+            displayTVShowDetails()
             break
         case '/search.html':
             console.log('Search')
@@ -427,23 +536,3 @@ function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init)
-document.addEventListener('DOMContentLoaded', () => {
-    if (global.currentPage === '/' || global.currentPage === '/index.html') {
-        displayPopularMovies()
-    }
-})
-document.addEventListener('DOMContentLoaded', () => {
-    if (global.currentPage === '/shows.html') {
-        displayPopularTVShows()
-    }
-})
-document.addEventListener('DOMContentLoaded', () => {
-    if (global.currentPage === '/movie-details.html') {
-        displayMovieDetails()
-    }
-})
-document.addEventListener('DOMContentLoaded', () => {
-    if (global.currentPage === '/tv-details.html') {
-        displayTVShowDetails()
-    }
-})
