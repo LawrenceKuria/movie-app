@@ -1,5 +1,12 @@
 const global = {
-    currentPage: window.location.pathname
+    currentPage: window.location.pathname,
+    search: {
+        term: '',
+        type: '',
+        page: 1,
+        totalPages: 1,
+        totalResults: 0
+    }
 }
 
 console.log(global.currentPage)
@@ -11,6 +18,17 @@ function highlightActiveLink () {
             link.classList.add('active')
         }
     })
+}
+
+function showAlert (message, className = 'error') {
+    const alertMsg = document.createElement('div')
+    alertMsg.classList.add('alert', className)
+    alertMsg.appendChild(document.createTextNode(message))
+    document.getElementById('alert').appendChild(alertMsg)
+
+    setTimeout(() => {
+        document.getElementById('alert').remove()
+    }, 2000)
 }
 
 async function fetchPopularMovies () {
@@ -149,6 +167,31 @@ async function fetchTVShowByID (id) {
     }
 }
 
+async function searchAPIData () {
+    const url = `https://api.themoviedb.org/3/search/${global.search.type}?query=${global.search.term}&page=${global.search.page}`
+    const options = {
+    method: 'GET',
+    headers: {
+        accept: 'application/json',
+        Authorization: 'Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJhZDRlNDU3YmIzMTZiMTFkM2Y4YTZiNDVkZGM4ZDY0MSIsIm5iZiI6MTc1MzA2MjU2OS41ODksInN1YiI6IjY4N2Q5Y2E5MjQyOWQ3NDI5M2Q5OGYxOSIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.wEqqs2DzPJSafC1910-6UO4Y4E1BRmDQSZltY800d2Y'
+    }
+    }
+    try {
+        showSpinner()
+        const searchRes = await fetch(url, options)
+        if (!searchRes.ok) {
+            hideSpinner()
+            throw new Error(`Failed to retrieve ${global.search.type} data`)
+        } else {
+            const searchData = await searchRes.json()
+            hideSpinner()
+            return searchData
+        }
+    } catch (error) {
+        console.log(error)
+    }
+}
+
 async function displayPopularMovies () {
     const popularMovies = await fetchPopularMovies()
     const popularMoviesGrid = document.getElementById('popular-movies')
@@ -263,6 +306,105 @@ async function displayNowPlaying () {
 
     })
     initSwiper()
+}
+
+async function search () {
+    const urlParams = new URLSearchParams(window.location.search)
+    global.search.type = urlParams.get('type')
+    global.search.term = urlParams.get('search-term')
+
+    if (global.search.term !== '' && global.search.term !== null) {
+        const { results, total_pages, page, total_results } = await searchAPIData()
+        global.search.page = page
+        global.search.totalPages = total_pages
+        global.search.totalResults = total_results
+        
+        if (results.length === 0) {
+            showAlert(`No ${global.search.type} found`)
+            return
+        } else {
+            displaySearchResults(results)
+            document.getElementById('search-term').value = ''
+        }
+    } else {
+        showAlert('Please enter a search term')
+    }
+}
+
+function displaySearchResults (results) {
+    const searchResults = document.getElementById('search-results')
+    searchResults.innerHTML = ''
+    if (document.getElementById('search-results-heading')) {
+        document.getElementById('search-results-heading').innerHTML = ''
+    }
+    if (document.getElementById('pagination')) {
+        document.getElementById('pagination').innerHTML = ''
+    }
+    results.forEach((result) => {
+        const searchResult = document.createElement('div')
+        searchResult.classList.add('card')
+        
+        const anchor = document.createElement('a')
+        anchor.setAttribute('href', `${global.search.type}-details.html?id=${result.id}`)
+        
+        const body = document.createElement('div')
+        body.classList.add('card-body')
+
+        const image = document.createElement('img')
+        image.setAttribute('src', `https://image.tmdb.org/t/p/original/${result.poster_path}`)
+        image.classList.add('card-img-top')
+        image.setAttribute('alt', `Image of ${global.search.type === 'movie' ? result.title : result.name}`)
+
+        const title = document.createElement('h5')
+        title.textContent = `${global.search.type === 'movie' ? result.title : result.name}`
+
+        const paragraph = document.createElement('p')
+        paragraph.classList.add('card-text')
+
+        const small = document.createElement('small')
+        small.classList.add('text-muted')
+        small.textContent = `Release: ${global.search.type === 'movie' ? result.release_date : result.first_air_date}`
+
+        //Append
+        searchResults.appendChild(searchResult)
+        searchResult.appendChild(anchor)
+        searchResult.appendChild(body)
+        anchor.appendChild(image)
+        body.appendChild(title)
+        body.appendChild(paragraph)
+        paragraph.appendChild(small)
+
+        document.getElementById('search-results-heading').innerHTML = `<h2>${results.length} of ${global.search.totalResults} results for ${global.search.term}</h2>`
+    })
+    displayPagination()
+}
+
+function displayPagination () {
+    const div = document.createElement('div')
+    div.classList.add('pagination')
+    div.innerHTML = `<button class="btn btn-primary" id="prev">Prev</button>
+          <button class="btn btn-primary" id="next">Next</button>
+          <div class="page-counter">Page ${global.search.page} of ${global.search.totalPages}</div>`
+
+    document.getElementById('pagination').appendChild(div)
+
+    if (global.search.page === 1) {
+        document.getElementById('prev').disabled = true
+    }
+
+    if (global.search.page === global.search.totalPages) {
+        document.getElementById('next').disabled = true
+    }
+    document.getElementById('next').addEventListener('click', async () => {
+        global.search.page++
+        const { results, total_pages } = await searchAPIData()
+        displaySearchResults(results)
+    })
+    document.getElementById('prev').addEventListener('click', async () => {
+        global.search.page--
+        const { results, total_pages } = await searchAPIData()
+        displaySearchResults(results)
+    })
 }
 
 function initSwiper () {
@@ -528,7 +670,7 @@ function init() {
             displayTVShowDetails()
             break
         case '/search.html':
-            console.log('Search')
+            search()
             break
     }
 
